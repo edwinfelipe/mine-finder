@@ -158,7 +158,9 @@ class Board {
   flipCell({ row, col }) {
     let faceDown = this.matrix.filter((c) => !c.isFaceUp);
 
-    if(cell.hasMine){
+    let cell = this.matrix.find((c) => c.row === row && c.col === col);
+
+    if(cell.hasMine && !this.firstFlip){
       cell.isFaceUp = true;
       alert("You Made KBOOM!!!!");
       this.generateBoard();
@@ -166,14 +168,14 @@ class Board {
       return;
     }
 
-    if (faceDown.length === this.mines - 1) {
+    if (faceDown.length === this.mines + 1 && !cell.hasMine) {
       alert("You Win!!!!!");
       this.generateBoard();
       this.firstFlip = true;
       return;
     }
 
-    let cell = this.matrix.find((c) => c.row === row && c.col === col);
+
     let nears = this.getNears(cell);
 
     if (cell.nearMines === 0 && !cell.hasMine) {
