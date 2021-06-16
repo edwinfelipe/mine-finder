@@ -1,8 +1,49 @@
 const getRandom = require("../utils/random-generator");
 const matrixFilter = require("../utils/matrix-filter");
-let board, cv, cx;
+let ui,
+  board,
+  cv,
+  cx,
+  config = {};
 const COLORS = ["#aaffaa", "#ccffaa", "#ffffaa", "#ffccaa"];
-let blockSize;
+
+class UI {
+  constructor(options) {
+    this.options = options;
+  }
+
+  draw(cx) {
+    for (let i = 0; i < this.options.length; i++) {
+      let option = this.options[i];
+      cx.beginPath();
+      cx.fillStyle = "#DDDDDD";
+      cx.fillRect(0, i * 100, cv.width, 90);
+      cx.fill();
+      cx.closePath();
+
+      cx.beginPath();
+      cx.font = "bold 24px courier";
+      cx.fillStyle = "black";
+      cx.fillText(option.name, 24, i * 100 + 40);
+      cx.fill();
+      cx.closePath();
+
+      cx.beginPath();
+      cx.font = "bold 16px courier";
+      cx.fillStyle = "black";
+      cx.fillText(`${option.cols} X ${option.rows}`, 24, i * 100 + 64);
+      cx.fill();
+      cx.closePath();
+
+      cx.beginPath();
+      cx.font = "bold 14px courier";
+      cx.fillStyle = "#666666";
+      cx.fillText(`${option.mines} Mines`, 24, i * 100 + 80);
+      cx.fill();
+      cx.closePath();
+    }
+  }
+}
 class Board {
   constructor({ rows, cols, mines }) {
     this.rows = rows;
@@ -105,21 +146,25 @@ class Board {
 
   getNears(cell) {
     let nears = this.matrix.filter((c) => {
-      if (c.row === cell.row - 1 && c.col === cell.col && !c.isFaceUp)
-        return true;
-      if (c.row === cell.row + 1 && c.col === cell.col && !c.isFaceUp)
-        return true;
-      if (c.row === cell.row && c.col === cell.col - 1 && !c.isFaceUp)
-        return true;
-      if (c.row === cell.row && c.col === cell.col + 1 && !c.isFaceUp)
-        return true;
+      let rowDistance = Math.abs(c.row - cell.row);
+      let colDistance = Math.abs(c.col - cell.col);
+      if (!c.isFaceUp && rowDistance < 2 && colDistance < 2 ) return true;
       return false;
     });
-
     return nears;
   }
+  
 
   flipCell({ row, col }) {
+    let faceDown = this.matrix.filter((c) => !c.isFaceUp);
+
+    if (faceDown.length === this.mines - 1) {
+      alert("You Win!!!!!");
+      this.generateBoard();
+      this.firstFlip = true;
+      return;
+    }
+
     let cell = this.matrix.find((c) => c.row === row && c.col === col);
     let nears = this.getNears(cell);
 
@@ -171,10 +216,27 @@ class Cell {
 function init() {
   cv = document.getElementById("cv");
   cx = cv.getContext("2d");
-  let size = 8;
-  blockSize = cv.width / size;
-  board = new Board({ rows: size, cols: size, mines: 10 });
-  board.generateBoard();
+
+  ui = new UI([
+    {
+      name: "Easy",
+      rows: 8,
+      cols: 8,
+      mines: 10,
+    },
+    {
+      name: "Medium",
+      rows: 16,
+      cols: 16,
+      mines: 40,
+    },
+    {
+      name: "Hard",
+      rows: 16,
+      cols: 28,
+      mines: 99,
+    },
+  ]);
 }
 
 function run() {
@@ -184,7 +246,11 @@ function run() {
 }
 
 function draw() {
-  board.draw(cx);
+  if (board) {
+    board.draw(cx);
+  } else if (ui) {
+    ui.draw(cx);
+  }
 }
 
 function actions() {}
@@ -193,14 +259,32 @@ init();
 run();
 
 cv.addEventListener("click", ({ clientX, clientY }) => {
-  let row = Math.floor((clientY - cv.offsetTop) / blockSize);
-  let col = Math.floor((clientX - cv.offsetLeft) / blockSize);
-  board.flipCell({ row, col });
+  if (board) {
+    let row = Math.floor((clientY - cv.offsetTop) / blockSize);
+    let col = Math.floor((clientX - cv.offsetLeft) / blockSize);
+    board.flipCell({ row, col });
+  } else {
+    let row = Math.floor((clientY - cv.offsetTop) / 100);
+    config = ui.options[row];
+    blockSize = cv.width / config.cols;
+    cv.width = blockSize * config.cols;
+    cv.height = blockSize * config.rows;
+    board = new Board({
+      rows: config.rows,
+      cols: config.cols,
+      mines: config.mines,
+    });
+    board.generateBoard();
+  }
 });
 
 cv.addEventListener("contextmenu", (evt) => {
   evt.preventDefault();
-  let row = Math.floor((evt.clientY - cv.offsetTop) / blockSize);
-  let col = Math.floor((evt.clientX - cv.offsetLeft) / blockSize);
-  board.markCell({ row, col });
+
+  if (board) {
+    let row = Math.floor((evt.clientY - cv.offsetTop) / blockSize);
+    let col = Math.floor((evt.clientX - cv.offsetLeft) / blockSize);
+    board.markCell({ row, col });
+  } else {
+  }
 });
