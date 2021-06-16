@@ -158,6 +158,14 @@ class Board {
   flipCell({ row, col }) {
     let faceDown = this.matrix.filter((c) => !c.isFaceUp);
 
+    if(cell.hasMine){
+      cell.isFaceUp = true;
+      alert("You Made KBOOM!!!!");
+      this.generateBoard();
+      this.firstFlip = true;
+      return;
+    }
+
     if (faceDown.length === this.mines - 1) {
       alert("You Win!!!!!");
       this.generateBoard();
